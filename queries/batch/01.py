@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # Movies in a specified year and their rating
 
-# /spark/bin/spark-submit --packages org.elasticsearch:elasticsearch-spark-30_2.12:8.6.0 01.py
+# /spark/bin/spark-submit --packages org.elasticsearch:elasticsearch-spark-30_2.12:8.6.0 01.py [year]
 
 from sys import argv
 from pyspark.sql import SparkSession

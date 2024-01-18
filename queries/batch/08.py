@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Average rating of movies in a specified year
+# Average text length of reviews for movies
 
 # /spark/bin/spark-submit --packages org.elasticsearch:elasticsearch-spark-30_2.12:8.6.0 08.py _
 

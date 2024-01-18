@@ -1,7 +1,7 @@
 #!/usr/bin/python
-# Average rating of movies in a specified year
+# Review statistics per genre
 
-# /spark/bin/spark-submit --packages org.elasticsearch:elasticsearch-spark-30_2.12:8.6.0 10.py _
+# /spark/bin/spark-submit --packages org.elasticsearch:elasticsearch-spark-30_2.12:8.6.0 10.py
 
 from os import environ
 from sys import argv

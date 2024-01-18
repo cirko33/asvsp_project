@@ -3,9 +3,9 @@ import re
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType
 
 HDFS_NAMENODE = environ.get("CORE_CONF_fs_defaultFS", "hdfs://namenode:9000")
-MOVIE_PATH = HDFS_NAMENODE + "/project/raw/batch/movies_ready/"
+MOVIE_PATH = HDFS_NAMENODE + "/project/raw/batch/movies/"
 OUTPUT_PATH = HDFS_NAMENODE + "/project/transform/stream/"
-REVIEW_PATH = HDFS_NAMENODE + "/project/raw/batch/reviews_ready/"
+REVIEW_PATH = HDFS_NAMENODE + "/project/raw/batch/reviews/"
 
 ELASTIC_SEARCH_NODE = environ.get("ELASTIC_SEARCH_NODE", "elasticsearch")
 ELASTIC_SEARCH_USERNAME = environ.get("ELASTIC_SEARCH_USERNAME", "elastic")
@@ -31,32 +31,33 @@ SCHEMA = StructType([
         StructField("vote_count", StringType(), True),
         StructField("user_id", StringType(), True),
         StructField("rating", StringType(), True),
-        StructField("timestamp", StringType(), True)
     ])
 
-def save_data(df, ELASTIC_SEARCH_INDEX):
+def save_data(df, ELASTIC_SEARCH_INDEX, complete=False):
+    mode = "complete" if complete else "append"
     df.writeStream \
-    .outputMode("append") \
-    .format("console") \
-    .option("truncate", "false") \
-    .start()
-
-    df.writeStream \
-        .outputMode("append") \
-        .format("parquet") \
-        .option("path", OUTPUT_PATH + ELASTIC_SEARCH_INDEX) \
-        .option("checkpointLocation", "/tmp/") \
+        .outputMode(mode) \
+        .format("console") \
+        .option("truncate", "false") \
         .start()
 
-    df.writeStream\
-        .outputMode("append")\
-        .option("checkpointLocation", "/tmp/") \
-        .format('org.elasticsearch.spark.sql') \
-        .option("es.net.http.auth.user", ELASTIC_SEARCH_USERNAME) \
-        .option("es.net.http.auth.pass", ELASTIC_SEARCH_PASSWORD) \
-        .option("mergeSchema", "true") \
-        .option('es.index.auto.create', 'true') \
-        .option('es.nodes', f'http://{ELASTIC_SEARCH_NODE}') \
-        .option('es.port', ELASTIC_SEARCH_PORT) \
-        .option('es.batch.write.retry.wait', '100s') \
-        .start(ELASTIC_SEARCH_INDEX)
+    if not complete:
+        df.writeStream \
+            .outputMode(mode) \
+            .option("checkpointLocation", "/tmp/") \
+            .format('org.elasticsearch.spark.sql') \
+            .option("es.net.http.auth.user", ELASTIC_SEARCH_USERNAME) \
+            .option("es.net.http.auth.pass", ELASTIC_SEARCH_PASSWORD) \
+            .option("mergeSchema", "true") \
+            .option('es.index.auto.create', 'true') \
+            .option('es.nodes', f'http://{ELASTIC_SEARCH_NODE}') \
+            .option('es.port', ELASTIC_SEARCH_PORT) \
+            .option('es.batch.write.retry.wait', '100s') \
+            .start(ELASTIC_SEARCH_INDEX)
+
+        # df.writeStream \
+        #     .outputMode(mode) \
+        #     .format("csv") \
+        #     .option("path", OUTPUT_PATH + ELASTIC_SEARCH_INDEX) \
+        #     .option("checkpointLocation", "/tmp/") \
+        #     .start()

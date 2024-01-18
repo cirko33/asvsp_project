@@ -39,7 +39,7 @@ def producing():
             # movie["timestamp"] = rating[3]
             print(str(movie))
             producer.send("movies", key=movie_id + "_" + movie["user_id"], value=movie)
-            time.sleep(5)
+            time.sleep(2)
 
 if __name__ == "__main__":
     producing()
