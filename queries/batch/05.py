@@ -13,7 +13,7 @@ from helper import *
 
 spark = SparkSession \
     .builder \
-    .appName("B05") \
+    .config(conf = get_conf("B05")) \
     .getOrCreate()
 
 spark.sparkContext.setLogLevel("ERROR")

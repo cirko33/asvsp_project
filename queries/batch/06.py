@@ -13,7 +13,7 @@ from helper import *
 
 spark = SparkSession \
     .builder \
-    .appName("B06") \
+    .config(conf = get_conf("B06")) \
     .getOrCreate()
 
 spark.sparkContext.setLogLevel("ERROR")
@@ -30,7 +30,7 @@ MOVIE = get_name([arg for arg in argv[2:]]) if len(argv) > 2 else "The Dark Knig
 ELASTIC_SEARCH_INDEX = "b06"
 
 df = spark.read.csv(path=REVIEW_PATH, header=True, inferSchema=True)
-df = df.filter(col("rating") >= RATING and col("movie") == MOVIE)
+df = df.filter((col("rating") >= RATING) & (col("movie") == MOVIE))
 
 save_data(df, ELASTIC_SEARCH_INDEX)
 

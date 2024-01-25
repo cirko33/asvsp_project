@@ -1,6 +1,8 @@
 from os import environ
 import re
 
+from pyspark import SparkConf
+
 HDFS_NAMENODE = environ.get("CORE_CONF_fs_defaultFS", "hdfs://namenode:9000")
 MOVIE_PATH = HDFS_NAMENODE + "/project/raw/batch/movies/"
 OUTPUT_PATH = HDFS_NAMENODE + "/project/transform/batch/"
@@ -10,6 +12,14 @@ ELASTIC_SEARCH_NODE = environ.get("ELASTIC_SEARCH_NODE", "elasticsearch")
 ELASTIC_SEARCH_USERNAME = environ.get("ELASTIC_SEARCH_USERNAME", "elastic")
 ELASTIC_SEARCH_PASSWORD = environ.get("ELASTIC_SEARCH_PASSWORD", "password")
 ELASTIC_SEARCH_PORT = environ.get("ELASTIC_SEARCH_PORT", "9200")
+
+def get_conf(name):
+    return SparkConf() \
+            .setAppName(name) \
+            .setMaster("spark://spark-master:7077") \
+            .set("spark.cores.max", "8") \
+            .set("spark.executor.cores", "4")
+
 
 def save_data(df, ELASTIC_SEARCH_INDEX):
     df.show(truncate=False)

@@ -12,7 +12,7 @@ from helper import *
 
 spark = SparkSession \
     .builder \
-    .appName("S05") \
+    .config(conf = get_conf("S05")) \
     .getOrCreate()
 
 spark.sparkContext.setLogLevel("ERROR")
@@ -25,13 +25,20 @@ df = spark.readStream \
     .option("subscribe", "movies") \
     .load() \
     .withColumn("parsed_value", from_json(col("value").cast("string"), SCHEMA)) \
-    .select(col("timestamp"), col("parsed_value.*"))
+    .select(col("timestamp"), col("parsed_value.*")) \
+    .withWatermark("timestamp", "1 seconds")
 
-df = df.groupBy("original_title").agg(avg("budget").alias("budget"), avg("revenue").alias("revenue")) \
+df = df.groupBy(window("timestamp", "5 seconds"), "original_title").agg(avg("budget").alias("budget"), avg("revenue").alias("revenue")) \
     .withColumn("earning_percentage", col("revenue") / col("budget") * 100)
 df = df.orderBy(col("earning_percentage").desc())
-df = df.select(col("original_title").alias('title'), col("budget").cast(IntegerType()), col("revenue").cast(IntegerType()), col("earning_percentage").cast(IntegerType())).limit(5)
+df = df.select(col("original_title").alias('title'), col("budget").cast(IntegerType()), 
+               col("revenue").cast(IntegerType()), col("earning_percentage").cast(IntegerType())) \
+    .limit(5)
 
-save_data(df, ELASTIC_SEARCH_INDEX, True)
+df.writeStream \
+    .outputMode("complete") \
+    .format("console") \
+    .option("truncate", "false") \
+    .start()
 
 spark.streams.awaitAnyTermination()

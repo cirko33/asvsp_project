@@ -12,7 +12,7 @@ from helper import *
 
 spark = SparkSession \
     .builder \
-    .appName("S04") \
+    .config(conf = get_conf("S04")) \
     .getOrCreate()
 
 spark.sparkContext.setLogLevel("ERROR")
@@ -25,11 +25,12 @@ df = spark.readStream \
     .option("subscribe", "movies") \
     .load() \
     .withColumn("parsed_value", from_json(col("value").cast("string"), SCHEMA)) \
-    .select(col("timestamp"), col("parsed_value.*"))
+    .select(col("timestamp"), col("parsed_value.*")) \
+    .withWatermark("timestamp", "1 seconds")
 
 df = df.withColumn("genres", from_json(col("genres"), T.ArrayType(T.MapType(T.StringType(), T.StringType()))))
 df = df.select(col("*"), explode("genres").alias("genre"))
-df = df.groupBy("genre.name").agg(avg("rating").alias("avg_rating"))
-save_data(df, ELASTIC_SEARCH_INDEX, True)
+df = df.groupBy(window("timestamp", "5 seconds"), "genre.name").agg(avg("rating").alias("avg_rating"))
+save_data(df, ELASTIC_SEARCH_INDEX)
 
 spark.streams.awaitAnyTermination()

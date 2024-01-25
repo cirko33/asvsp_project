@@ -6,19 +6,27 @@
 from os import environ
 from sys import argv
 import re
-from pyspark.sql import SparkSession, Window
+from pyspark.sql import SparkSession
 from pyspark.sql.functions import *
 from pyspark.sql.types import *
 from helper import *
 
 spark = SparkSession \
     .builder \
-    .appName("B04") \
+    .config(conf = get_conf("B04")) \
     .getOrCreate()
 
 spark.sparkContext.setLogLevel("ERROR")
 
 ELASTIC_SEARCH_INDEX = "b04"
+
+def duration_to_minutes(duration):
+    hours_match = re.search(r'(\d+)h', duration)
+    minutes_match = re.search(r'(\d+)min', duration)
+    hours = int(hours_match.group(1)) if hours_match else 0
+    minutes = int(minutes_match.group(1)) if minutes_match else 0
+
+    return hours * 60 + minutes
 
 df = spark.read.csv(path=MOVIE_PATH, header=True, inferSchema=True)
 

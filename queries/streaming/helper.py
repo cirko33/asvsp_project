@@ -1,5 +1,6 @@
 from os import environ
 import re
+from pyspark import SparkConf
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType
 
 HDFS_NAMENODE = environ.get("CORE_CONF_fs_defaultFS", "hdfs://namenode:9000")
@@ -33,31 +34,36 @@ SCHEMA = StructType([
         StructField("rating", StringType(), True),
     ])
 
-def save_data(df, ELASTIC_SEARCH_INDEX, complete=False):
-    mode = "complete" if complete else "append"
+def get_conf(name):
+    return SparkConf() \
+            .setAppName(name) \
+            .setMaster("spark://spark-master:7077") \
+            .set("spark.cores.max", "4") \
+            .set("spark.executor.cores", "2")
+
+def save_data(df, ELASTIC_SEARCH_INDEX):
     df.writeStream \
-        .outputMode(mode) \
+        .outputMode("append") \
         .format("console") \
         .option("truncate", "false") \
         .start()
 
-    if not complete:
-        df.writeStream \
-            .outputMode(mode) \
-            .option("checkpointLocation", "/tmp/") \
-            .format('org.elasticsearch.spark.sql') \
-            .option("es.net.http.auth.user", ELASTIC_SEARCH_USERNAME) \
-            .option("es.net.http.auth.pass", ELASTIC_SEARCH_PASSWORD) \
-            .option("mergeSchema", "true") \
-            .option('es.index.auto.create', 'true') \
-            .option('es.nodes', f'http://{ELASTIC_SEARCH_NODE}') \
-            .option('es.port', ELASTIC_SEARCH_PORT) \
-            .option('es.batch.write.retry.wait', '100s') \
-            .start(ELASTIC_SEARCH_INDEX)
+    df.writeStream \
+        .outputMode("append") \
+        .option("checkpointLocation", "/tmp/EL_" + ELASTIC_SEARCH_INDEX) \
+        .format('org.elasticsearch.spark.sql') \
+        .option("es.net.http.auth.user", ELASTIC_SEARCH_USERNAME) \
+        .option("es.net.http.auth.pass", ELASTIC_SEARCH_PASSWORD) \
+        .option("mergeSchema", "true") \
+        .option('es.index.auto.create', 'true') \
+        .option('es.nodes', f'http://{ELASTIC_SEARCH_NODE}') \
+        .option('es.port', ELASTIC_SEARCH_PORT) \
+        .option('es.batch.write.retry.wait', '100s') \
+        .start(ELASTIC_SEARCH_INDEX)
 
-        # df.writeStream \
-        #     .outputMode(mode) \
-        #     .format("csv") \
-        #     .option("path", OUTPUT_PATH + ELASTIC_SEARCH_INDEX) \
-        #     .option("checkpointLocation", "/tmp/") \
-        #     .start()
+    df.writeStream \
+        .outputMode("append") \
+        .format("parquet") \
+        .option("path", OUTPUT_PATH + ELASTIC_SEARCH_INDEX) \
+        .option("checkpointLocation", "/tmp/" + ELASTIC_SEARCH_INDEX) \
+        .start()
